@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Process Map Focus</title>
+  <style>
+    /* Fill the screen, but allow panning/scrolling */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: auto;      /* <-- was hidden before */
+    }
+    /* Make sure the SVG itself can be larger than the viewport */
+    svg {
+      width: auto;
+      height: auto;
+      max-width: none;
+      max-height: none;
+      display: block;
+    }
+    /* Highlight effect */
+    .highlight {
+      stroke: #e53935 !important;        
+      stroke-width: 6px !important;      
+      filter: drop-shadow(0 0 10px #e53935) !important;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%   { filter: drop-shadow(0 0 5px #e53935); }
+      50%  { filter: drop-shadow(0 0 20px #e53935); }
+      100% { filter: drop-shadow(0 0 5px #e53935); }
+    }
+  </style>
+</head>
+<body>
+  <script>
+    (async () => {
+      // 1. Grab shape ID from ?shape=
+      const shapeId = new URLSearchParams(location.search).get('shape');
+      // 2. Load & parse SVG
+      const resp = await fetch('123.svg');
+      if (!resp.ok) {
+        document.body.textContent = 'Error loading diagram.';
+        return;
+      }
+      const text = await resp.text();
+      const parser = new DOMParser();
+      const svgDoc = parser.parseFromString(text, 'image/svg+xml');
+      const svgEl  = svgDoc.documentElement;
+      document.body.appendChild(svgEl);
+
+      if (shapeId) {
+        const target = svgEl.getElementById(shapeId);
+        if (target) {
+          // 3. Highlight
+          target.classList.add('highlight');
+
+          // 4. Zoom to shape: compute its bbox + margin
+          const m = 20;  // pixels of margin around the shape
+          const { x, y, width, height } = target.getBBox();
+          const vbX = x - m;
+          const vbY = y - m;
+          const vbW = width + m*2;
+          const vbH = height + m*2;
+          // set the SVG viewport
+          svgEl.setAttribute('viewBox', ${vbX} ${vbY} ${vbW} ${vbH});
+
+          // 5. Center it in the window
+          // A small timeout so the browser repaints with new viewBox
+          setTimeout(() => {
+            window.scrollTo(vbX, vbY);
+          }, 50);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
